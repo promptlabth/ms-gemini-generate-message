@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"sync"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -47,7 +46,11 @@ func (p promptMessageHandler) Generate(c *gin.Context) {
 }
 
 func (p promptMessageHandler) GenerateStream(c *gin.Context) {
-	ctx := c.Request.Context()
+	ginCtx := c.Request.Context()
+
+	ctx, cancel := context.WithCancel(ginCtx)
+	defer cancel()
+
 	// create channel to get data
 	content := make(chan string)
 	// create mutex to control routine flow
@@ -55,32 +58,23 @@ func (p promptMessageHandler) GenerateStream(c *gin.Context) {
 	go p.geminiService.GenerateStreamMessage(
 		ctx,
 		"level of mindset of tester",
-		content,
-		mu,
+		content, // to recive data
+		mu,      // to routine control
 	)
 
-	c.Stream(func(w io.Writer) bool {
-		select {
-		case message := <-content:
-			if message == "" {
-				// case end of content
-				return false
-			}
-			mu.Lock()
-			for _, v := range message {
-				select {
-				case <-ctx.Done():
-					mu.Unlock()
-					return false
-				default:
-					c.SSEvent("message", string(v))
-					time.Sleep(2 * time.Millisecond)
-				}
-			}
-			mu.Unlock()
-			return true
-		case <-ctx.Done():
-			return false
+	go c.Stream(func(w io.Writer) bool {
+		message := <-content
+		if message == "" {
+			// case end of content
+			cancel()
 		}
+		mu.Lock()
+		for _, v := range message {
+			c.SSEvent("message", string(v))
+		}
+		mu.Unlock()
+		return true
+
 	})
+	<-ctx.Done()
 }
