@@ -3,7 +3,6 @@ package promptMessage
 import (
 	"context"
 	"io"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -53,39 +52,44 @@ func (p promptMessageHandler) GenerateStream(c *gin.Context) {
 
 	// create channel to get data
 	rawContent := make(chan string)
-	content := make(chan rune, 50)
+	// content := make(chan rune, 50)
 	// create mutex to control routine flow
 
 	go p.geminiService.GenerateStreamMessage(
 		ctx,
-		"tell me a long story in thai lang",
+		"detail of level of tester ",
 		rawContent, // to recive data
 	)
 
-	go func() {
-		for {
-			d, ok := <-rawContent
-			if !ok {
-				close(content)
-				return
-			}
-			for _, v := range d {
-				content <- v
-				time.Sleep(500 * time.Microsecond)
-			}
-		}
-	}()
+	// go func() {
+	// 	for {
+	// 		d, ok := <-rawContent
+	// 		if !ok {
+	// 			close(content)
+	// 			return
+	// 		}
+	// 		for _, v := range d {
+	// 			content <- v
+	// 			time.Sleep(100 * time.Millisecond)
+	// 		}
+	// 	}
+	// }()
 
-	c.Stream(func(w io.Writer) bool {
-		message, ok := <-content
+	go c.Stream(func(w io.Writer) bool {
+		message, ok := <-rawContent
 		if !ok {
 			// case end of content
 			c.SSEvent("status", "done")
 			cancle()
 			return false
 		}
-		c.SSEvent("message2", string(message))
+		// resp struct
+
+		c.SSEvent("message2", map[string]string{
+			"data": string(message),
+		})
 		return true
 	})
+	<-ctx.Done()
 
 }

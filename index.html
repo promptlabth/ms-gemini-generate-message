@@ -8,13 +8,11 @@
 <script>
 var stream = new EventSource("http://localhost:8080/stream");
 var title = document.getElementById("message")
-
+var showData = ""
 stream.addEventListener("message2", function(e){
-    if (!title.innerText){
-        title.innerText = e.data
-    }else{
-        title.innerText += e.data
-    }
+    var outputData =JSON.parse(e.data)
+    showData += outputData.data
+    title.innerText = showData
 });
 
 stream.addEventListener("status", function(e){
