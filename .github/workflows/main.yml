@@ -1,0 +1,68 @@
+name: Build and Deploy to Cloud Run For Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Testing
+      steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.22'
+    - name: Install Dependency
+      run: go mod tidy
+
+    - name: Test
+      run: go test -v ./...
+
+  build-and-deploy:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v0.3.0
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        export_default_credentials: true
+
+    - name: Configure Docker
+      run: |
+        gcloud auth configure-docker
+
+    - name: create-cred-firebase-json
+      id: create-cred-firebase-json
+      uses: jsdaniell/create-json@v1.2.2
+      with:
+        name: "firebase_credential.json"
+        json: ${{secrets.FIREBASE_CREDENTIAL}}
+    
+    - name: Build and push Docker image
+      run: |
+        docker build -t gcr.io/${{ secrets.GCP_PROJECT_ID }}/ms-payment:${{ github.sha }} .
+        docker push gcr.io/${{ secrets.GCP_PROJECT_ID }}/ms-payment:${{ github.sha }}
+
+    - name: Deploy to Cloud Run
+      run: |
+        gcloud run deploy ms-payment \
+        --image gcr.io/${{ secrets.GCP_PROJECT_ID }}/ms-payment:${{ github.sha }} \
+        --region asia-southeast1 \
+        --platform managed \
+        --allow-unauthenticated \
+        --set-env-vars DB_USER=${{ secrets.DB_USER }},DB_PASS=${{ secrets.DB_PASS }},DB_HOST=${{ secrets.DB_HOST }},DB_PORT=${{ secrets.DB_PORT }},DB_NAME=${{ secrets.DB_NAME }},DEPLOY=PROD,GENAI_API_KEY=${{ secrets.GEN_API_KEY }} \
+        --max-instances=10 \
+        --memory 1Gi \
+        --timeout=1ms

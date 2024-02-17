@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"sync"
 
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/iterator"
@@ -16,7 +15,7 @@ type geminiMessage struct {
 }
 
 func NewGeminiService() *geminiMessage {
-	client, err := genai.NewClient(context.Background(), option.WithAPIKey(os.Getenv("API_KEY")))
+	client, err := genai.NewClient(context.Background(), option.WithAPIKey(os.Getenv("GENAI_API_KEY")))
 	if err != nil {
 		panic(err)
 	}
@@ -34,7 +33,7 @@ func (g *geminiMessage) GenerateMessage(ctx context.Context, prompt string) (str
 	return fmt.Sprintf("%s", content.Candidates[0].Content.Parts[0]), nil
 }
 
-func (g *geminiMessage) GenerateStreamMessage(ctx context.Context, prompt string, MessageStream chan string, mu *sync.Mutex) error {
+func (g *geminiMessage) GenerateStreamMessage(ctx context.Context, prompt string, MessageStream chan string) error {
 	model := g.genService.GenerativeModel("gemini-pro")
 	iter := model.GenerateContentStream(ctx, genai.Text(prompt))
 	for {
@@ -47,9 +46,7 @@ func (g *geminiMessage) GenerateStreamMessage(ctx context.Context, prompt string
 			return err
 		}
 		// Manage Will Assign Data when signal sender is successful
-		mu.Lock()
 		MessageStream <- fmt.Sprintf("%s", resp.Candidates[0].Content.Parts[0])
-		mu.Unlock()
 	}
 	return nil
 }

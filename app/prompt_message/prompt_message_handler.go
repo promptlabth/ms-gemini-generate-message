@@ -3,14 +3,13 @@ package promptMessage
 import (
 	"context"
 	"io"
-	"sync"
 
 	"github.com/gin-gonic/gin"
 )
 
 type PromptGeminiService interface {
 	GenerateMessage(ctx context.Context, prompt string) (string, error)
-	GenerateStreamMessage(ctx context.Context, prompt string, MessageStream chan string, mu *sync.Mutex) error
+	GenerateStreamMessage(ctx context.Context, prompt string, MessageStream chan string) error
 }
 
 type PromptMessageStorage interface {
@@ -54,12 +53,10 @@ func (p promptMessageHandler) GenerateStream(c *gin.Context) {
 	// create channel to get data
 	content := make(chan string)
 	// create mutex to control routine flow
-	var mu = new(sync.Mutex)
 	go p.geminiService.GenerateStreamMessage(
 		ctx,
 		"level of mindset of tester",
 		content, // to recive data
-		mu,      // to routine control
 	)
 
 	go c.Stream(func(w io.Writer) bool {
@@ -67,12 +64,12 @@ func (p promptMessageHandler) GenerateStream(c *gin.Context) {
 		if message == "" {
 			// case end of content
 			cancel()
+			return false
 		}
-		mu.Lock()
-		for _, v := range message {
-			c.SSEvent("message", string(v))
-		}
-		mu.Unlock()
+		// for _, v := range message {
+		// 	c.SSEvent("message", string(v))
+		// }
+		c.SSEvent("message2", message)
 		return true
 
 	})
