@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <p id="message">text : </p>
+</head>
+<body>
+<script>
+var stream = new EventSource("http://localhost:8080/stream");
+var title = document.getElementById("message")
+
+stream.addEventListener("message2", function(e){
+    if (!title.innerText){
+        title.innerText = e.data
+    }else{
+        title.innerText += e.data
+    }
+});
+
+stream.addEventListener("status", function(e){
+    stream.close()
+});
+</script>    
+</body>
+</html>

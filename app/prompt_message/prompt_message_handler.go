@@ -3,6 +3,7 @@ package promptMessage
 import (
 	"context"
 	"io"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -33,7 +34,7 @@ func NewPromptMessageHandler(
 
 func (p promptMessageHandler) Generate(c *gin.Context) {
 	ctx := c.Request.Context()
-	content, err := p.geminiService.GenerateMessage(ctx, "hellp")
+	content, err := p.geminiService.GenerateMessage(ctx, "tell me a long story in thai lang")
 	if err != nil {
 		c.JSON(404, map[string]string{
 			"err": err.Error(),
@@ -47,31 +48,44 @@ func (p promptMessageHandler) Generate(c *gin.Context) {
 func (p promptMessageHandler) GenerateStream(c *gin.Context) {
 	ginCtx := c.Request.Context()
 
-	ctx, cancel := context.WithCancel(ginCtx)
-	defer cancel()
+	ctx, cancle := context.WithCancel(ginCtx)
+	defer cancle()
 
 	// create channel to get data
-	content := make(chan string)
+	rawContent := make(chan string)
+	content := make(chan rune, 50)
 	// create mutex to control routine flow
+
 	go p.geminiService.GenerateStreamMessage(
 		ctx,
-		"level of mindset of tester",
-		content, // to recive data
+		"tell me a long story in thai lang",
+		rawContent, // to recive data
 	)
 
-	go c.Stream(func(w io.Writer) bool {
-		message := <-content
-		if message == "" {
+	go func() {
+		for {
+			d, ok := <-rawContent
+			if !ok {
+				close(content)
+				return
+			}
+			for _, v := range d {
+				content <- v
+				time.Sleep(500 * time.Microsecond)
+			}
+		}
+	}()
+
+	c.Stream(func(w io.Writer) bool {
+		message, ok := <-content
+		if !ok {
 			// case end of content
-			cancel()
+			c.SSEvent("status", "done")
+			cancle()
 			return false
 		}
-		// for _, v := range message {
-		// 	c.SSEvent("message", string(v))
-		// }
-		c.SSEvent("message2", message)
+		c.SSEvent("message2", string(message))
 		return true
-
 	})
-	<-ctx.Done()
+
 }
