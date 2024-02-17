@@ -61,7 +61,7 @@ jobs:
         --region asia-southeast1 \
         --platform managed \
         --allow-unauthenticated \
-        --set-env-vars DB_USER=${{ secrets.DB_USER }},DB_PASS=${{ secrets.DB_PASS }},DB_HOST=${{ secrets.DB_HOST }},DB_PORT=${{ secrets.DB_PORT }},DB_NAME=${{ secrets.DB_NAME }},DEPLOY=PROD,GENAI_API_KEY=${{ secrets.GEN_API_KEY }} \
+        --set-env-vars DB_USER=${{ secrets.DB_USER }},DB_PASS=${{ secrets.DB_PASS }},DB_HOST=${{ secrets.DB_HOST }},DB_PORT=${{ secrets.DB_PORT }},DB_NAME=${{ secrets.DB_NAME }},DEPLOY=PROD,GEN_API_KEY=${{ secrets.GEN_API_KEY }} \
         --max-instances=10 \
         --memory 1Gi \
         --timeout=1ms

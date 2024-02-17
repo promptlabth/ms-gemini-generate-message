@@ -15,7 +15,7 @@ type geminiMessage struct {
 }
 
 func NewGeminiService() *geminiMessage {
-	client, err := genai.NewClient(context.Background(), option.WithAPIKey(os.Getenv("GENAI_API_KEY")))
+	client, err := genai.NewClient(context.Background(), option.WithAPIKey(os.Getenv("GEN_API_KEY")))
 	if err != nil {
 		panic(err)
 	}
