@@ -14,5 +14,5 @@ type PromptMessage struct {
 }
 
 type PromptMessageRequest struct {
-	InputMessage string
+	InputMessage string `json:"inputMessage"`
 }
