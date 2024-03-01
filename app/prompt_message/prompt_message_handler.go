@@ -31,13 +31,23 @@ func NewPromptMessageHandler(
 	}
 }
 
-func (p promptMessageHandler) Generate(c *gin.Context) {
+func (p promptMessageHandler) GenerateMessage(c *gin.Context) {
 	ctx := c.Request.Context()
-	content, err := p.geminiService.GenerateMessage(ctx, "tell me a long story in thai lang")
-	if err != nil {
-		c.JSON(404, map[string]string{
-			"err": err.Error(),
+	promptMessage := new(PromptMessageRequest)
+	// binding a request to json
+	if err := c.ShouldBindJSON(promptMessage); err != nil {
+		c.JSON(400, map[string]string{
+			"error": err.Error(),
 		})
+		return
+	}
+	// use content to generate message with gemini
+	content, err := p.geminiService.GenerateMessage(ctx, promptMessage.InputMessage)
+	if err != nil {
+		c.JSON(503, map[string]string{
+			"error": err.Error(),
+		})
+		return
 	}
 	c.JSON(200, map[string]string{
 		"data": content,

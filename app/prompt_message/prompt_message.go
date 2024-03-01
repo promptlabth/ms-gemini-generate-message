@@ -12,3 +12,7 @@ type PromptMessage struct {
 	FeatureId     uint      `json:"featureId"`
 	ModelId       uint      `json:"modelId"`
 }
+
+type PromptMessageRequest struct {
+	InputMessage string
+}

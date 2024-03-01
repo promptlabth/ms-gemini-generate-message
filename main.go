@@ -93,8 +93,7 @@ func NewRouter(db *sql.DB) *gin.Engine {
 
 	promptMessageStorage := promptMessage.NewPromptMessageStorage(db)
 	promptMessageHandler := promptMessage.NewPromptMessageHandler(*promptMessageStorage, gen)
-
-	router.GET("/", promptMessageHandler.Generate)
+	router.POST("/generate-message")
 
 	router.GET("/stream", promptMessageHandler.GenerateStream)
 	return router
